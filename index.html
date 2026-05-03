@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Hide number input arrows for clean UI */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-black text-white font-sans overflow-x-hidden selection:bg-red-500/30">
+
+    <div class="min-h-screen">
+        
+        <!-- Top Navigation Bar -->
+        <nav class="sticky top-0 z-50 bg-black/80 backdrop-blur-lg border-b border-neutral-900 pb-2">
+            <div class="max-w-md mx-auto px-4 pt-4">
+                <div id="nav-container" class="flex justify-between items-center bg-neutral-950 p-1 rounded-full border border-neutral-800">
+                    <!-- Nav buttons injected via JS -->
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="max-w-md mx-auto px-4 pt-6 pb-20">
+            
+            <!-- Workout Header -->
+            <div id="workout-header" class="mb-6">
+                <!-- Header injected via JS -->
+            </div>
+
+            <!-- Exercises List -->
+            <div id="exercises-list" class="space-y-3">
+                <!-- Exercises injected via JS -->
+            </div>
+            
+            <!-- Completion Indicator -->
+            <div class="mt-8 mb-4 flex justify-center opacity-30">
+                <div class="w-1 h-1 rounded-full bg-neutral-500 mx-1"></div>
+                <div class="w-1 h-1 rounded-full bg-neutral-500 mx-1"></div>
+                <div class="w-1 h-1 rounded-full bg-neutral-500 mx-1"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Workout Data ---
+        const WORKOUT_PLAN = {
+            1: { day: 'MONDAY', type: 'Legs + Core (Strength)', exercises: [
+                { id: 'm1', name: 'Barbell Squat', reps: '4 x 5-8' },
+                { id: 'm2', name: 'Romanian Deadlift', reps: '4 x 6-8' },
+                { id: 'm3', name: 'Leg Press', reps: '3 x 8-10' },
+                { id: 'm4', name: 'Walking Lunges', reps: '3 x 10/leg' },
+                { id: 'm5', name: 'Hanging Leg Raises', reps: '3 x 12-15' },
+                { id: 'm6', name: 'Plank', reps: '3 x 45-60 sec', noWeight: true }
+            ]},
+            2: { day: 'TUESDAY', type: 'Upper (Heavy)', exercises: [
+                { id: 't1', name: 'Bench Press', reps: '4 x 5-8' },
+                { id: 't2', name: 'Pull-Ups / Lat Pulldown', reps: '4 x 6-10' },
+                { id: 't3', name: 'Overhead Press', reps: '3 x 6-8' },
+                { id: 't4', name: 'Barbell Row', reps: '3 x 6-8' },
+                { id: 't5', name: 'Lateral Raises', reps: '3 x 12-15' },
+                { id: 't6', name: 'Tricep Pushdown', reps: '3 x 10-12' },
+                { id: 't7', name: 'Bicep Curl', reps: '3 x 10-12' }
+            ]},
+            3: { day: 'WEDNESDAY', type: 'Rest Day', exercises: [
+                { id: 'w1', name: 'Light Walking (Optional)', reps: 'Active Recovery', noWeight: true }
+            ]},
+            4: { day: 'THURSDAY', type: 'Legs + Core (Volume)', exercises: [
+                { id: 'th1', name: 'Leg Press (Feet High)', reps: '4 x 10-12' },
+                { id: 'th2', name: 'Bulgarian Split Squat', reps: '3 x 10/leg' },
+                { id: 'th3', name: 'Leg Curl', reps: '3 x 12-15' },
+                { id: 'th4', name: 'Leg Extension', reps: '3 x 12-15' },
+                { id: 'th5', name: 'Cable Crunch', reps: '3 x 12-15' },
+                { id: 'th6', name: 'Russian Twist', reps: '3 x 20', noWeight: true }
+            ]},
+            5: { day: 'FRIDAY', type: 'Push (Chest/Shoulders)', exercises: [
+                { id: 'f1', name: 'Incline Dumbbell Press', reps: '4 x 8-10' },
+                { id: 'f2', name: 'Chest Press Machine', reps: '3 x 10-12' },
+                { id: 'f3', name: 'Shoulder Press', reps: '3 x 8-10' },
+                { id: 'f4', name: 'Lateral Raises', reps: '4 x 12-15' },
+                { id: 'f5', name: 'Tricep Dips / Pushdown', reps: '3 x 10-12' }
+            ]},
+            6: { day: 'SATURDAY', type: 'Pull (Back Focus)', exercises: [
+                { id: 's1', name: 'Lat Pulldown', reps: '4 x 8-10' },
+                { id: 's2', name: 'Seated Row', reps: '3 x 10-12' },
+                { id: 's3', name: 'Face Pull', reps: '3 x 12-15' },
+                { id: 's4', name: 'Rear Delt Fly', reps: '3 x 12-15' },
+                { id: 's5', name: 'Bicep Curl', reps: '3 x 10-12' },
+                { id: 's6', name: 'Hammer Curl', reps: '3 x 10-12' }
+            ]},
+            7: { day: 'SUNDAY', type: 'Rest Day', exercises: [
+                { id: 'su1', name: 'Complete Rest', reps: 'Recovery', noWeight: true }
+            ]}
+        };
+
+        const DAYS = [
+            { id: 1, label: 'M' }, { id: 2, label: 'T' }, { id: 3, label: 'W' },
+            { id: 4, label: 'T' }, { id: 5, label: 'F' }, { id: 6, label: 'S' }, { id: 7, label: 'S' }
+        ];
+
+        // --- Application State ---
+        let activeDay = 1;
+        // Load weights from local storage
+        let weights = JSON.parse(localStorage.getItem('workout_weights')) || {};
+
+        function saveWeights() {
+            localStorage.setItem('workout_weights', JSON.stringify(weights));
+        }
+
+        // --- Rendering Logic ---
+        const navContainer = document.getElementById('nav-container');
+        const headerContainer = document.getElementById('workout-header');
+        const exercisesContainer = document.getElementById('exercises-list');
+
+        function renderNav() {
+            navContainer.innerHTML = DAYS.map(day => {
+                const isActive = activeDay === day.id;
+                const activeClasses = isActive 
+                    ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] scale-105' 
+                    : 'text-neutral-500 hover:text-white hover:bg-neutral-900';
+                
+                return `
+                    <button
+                        onclick="setActiveDay(${day.id})"
+                        class="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full text-xs sm:text-sm font-bold transition-all duration-300 ${activeClasses}"
+                    >
+                        ${day.label}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function renderWorkout() {
+            const routine = WORKOUT_PLAN[activeDay];
+
+            // Render Header
+            headerContainer.innerHTML = `
+                <h2 class="text-neutral-400 text-xs font-bold tracking-widest uppercase mb-1">
+                    ${routine.day}
+                </h2>
+                <h3 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    ${routine.type}
+                    <div class="h-2 w-2 rounded-full bg-red-600 shadow-[0_0_8px_rgba(220,38,38,1)]"></div>
+                </h3>
+            `;
+
+            // Render Exercises
+            exercisesContainer.innerHTML = routine.exercises.map((exercise, index) => {
+                const currentWeight = weights[exercise.id] || '';
+                
+                let weightControlsHtml = '';
+                if (!exercise.noWeight) {
+                    weightControlsHtml = `
+                        <!-- Weight Controls -->
+                        <div class="flex items-center gap-2 bg-black p-1 rounded-xl border border-neutral-800 shrink-0">
+                            <button data-id="${exercise.id}" data-action="decrease" class="w-8 h-8 flex items-center justify-center rounded-lg bg-neutral-900 text-red-500 active:bg-neutral-800 active:scale-95 transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"/></svg>
+                            </button>
+                            
+                            <div class="flex items-center justify-center min-w-[56px]">
+                                <input
+                                    type="number"
+                                    data-id="${exercise.id}"
+                                    value="${currentWeight}"
+                                    placeholder="0"
+                                    class="w-10 bg-transparent text-center text-lg font-black text-white outline-none placeholder:text-neutral-700"
+                                />
+                                <span class="text-[10px] font-bold text-neutral-500 -ml-1">kg</span>
+                            </div>
+
+                            <button data-id="${exercise.id}" data-action="increase" class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-600 text-white active:bg-red-700 active:scale-95 transition-all shadow-[0_2px_8px_rgba(220,38,38,0.3)]">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="bg-neutral-900 border border-neutral-800/50 rounded-2xl p-3 flex items-center justify-between gap-3">
+                        
+                        <!-- Exercise Info -->
+                        <div class="flex-1 min-w-0 pr-2">
+                            <h4 class="font-bold text-[17px] text-white leading-tight mb-1">
+                                ${exercise.name}
+                            </h4>
+                            <p class="text-neutral-400 text-sm font-semibold flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-red-600"><path d="m9 18 6-6-6-6"/></svg>
+                                ${exercise.reps}
+                            </p>
+                        </div>
+
+                        ${weightControlsHtml}
+
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- Event Handlers ---
+        window.setActiveDay = function(dayId) {
+            activeDay = dayId;
+            renderNav();
+            renderWorkout();
+        };
+
+        // Event delegation for dynamically created inputs and buttons
+        exercisesContainer.addEventListener('input', (e) => {
+            if (e.target.tagName === 'INPUT') {
+                const id = e.target.dataset.id;
+                const value = e.target.value;
+                const numVal = Number(value);
+                weights[id] = Math.max(0, isNaN(numVal) ? 0 : numVal);
+                saveWeights();
+            }
+        });
+
+        exercisesContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+
+            const id = btn.dataset.id;
+            const action = btn.dataset.action;
+            const amount = action === 'increase' ? 2.5 : -2.5;
+
+            const current = weights[id] || 0;
+            weights[id] = Number(Math.max(0, current + amount).toFixed(1));
+            saveWeights();
+
+            // Update the specific input value without re-rendering the whole list
+            const input = document.querySelector(`input[data-id="${id}"]`);
+            if (input) {
+                input.value = weights[id] || '';
+            }
+        });
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().getDay(); 
+            // Map Sunday (0) to 7, Monday is 1, etc.
+            activeDay = today === 0 ? 7 : today;
+            
+            renderNav();
+            renderWorkout();
+        });
+
+    </script>
+</body>
+</html>
